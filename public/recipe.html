@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Details - Recipe App</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="/">Recipe App</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/favorites.html">Favorites</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/login.html">Login</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="row mt-4">
+            <div class="col-md-8 offset-md-2">
+                <h2 id="recipe-title"></h2>
+                <h3>Ingredients</h3>
+                <ul id="recipe-ingredients"></ul>
+                <h3>Instructions</h3>
+                <p id="recipe-instructions"></p>
+                <h3>Nutrition</h3>
+                <p id="recipe-nutrition"></p>
+                <button id="save-recipe" class="btn btn-primary">Save Recipe</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const recipeId = params.get('id');
+
+            try {
+                const response = await fetch(`/api/recipes/${recipeId}`);
+                const recipe = await response.json();
+
+                document.getElementById('recipe-title').innerText = recipe.title;
+                const ingredientsList = document.getElementById('recipe-ingredients');
+                recipe.extendedIngredients.forEach(ingredient => {
+                    const listItem = document.createElement('li');
+                    listItem.innerText = ingredient.original;
+                    ingredientsList.appendChild(listItem);
+                });
+                document.getElementById('recipe-instructions').innerHTML = recipe.instructions;
+                document.getElementById('recipe-nutrition').innerText = `Calories: ${recipe.nutrition.nutrients[0].amount} ${recipe.nutrition.nutrients[0].unit}`;
+
+                document.getElementById('save-recipe').addEventListener('click', async () => {
+                    const userId = localStorage.getItem('userId');
+                    if (!userId) {
+                        alert('Please login to save recipes.');
+                        window.location.href = '/login.html';
+                        return;
+                    }
+
+                    try {
+                        const saveResponse = await fetch('/api/recipes/save', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                title: recipe.title,
+                                ingredients: JSON.stringify(recipe.extendedIngredients),
+                                instructions: recipe.instructions,
+                                nutrition: JSON.stringify(recipe.nutrition),
+                                userId
+                            })
+                        });
+
+                        const saveData = await saveResponse.json();
+
+                        if (saveResponse.ok) {
+                            alert('Recipe saved successfully.');
+                        } else {
+                            alert(saveData.error);
+                        }
+                    } catch (error) {
+                        alert('An error occurred.');
+                    }
+                });
+            } catch (error) {
+                alert('An error occurred.');
+            }
+        });
+    </script>
+</body>
+</html>
